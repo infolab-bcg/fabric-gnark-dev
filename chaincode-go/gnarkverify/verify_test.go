@@ -10,11 +10,14 @@ import (
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 	"github.com/infolab-bcg/fabric-gnark-dev/chaincode-go/gnarkverify/mocks"
 	"github.com/oliverustc/gnarkabc/circuits"
+	"github.com/oliverustc/gnarkabc/logger"
 	"github.com/oliverustc/gnarkabc/utils"
 	"github.com/oliverustc/gnarkabc/wrapper/groth16wrapper"
+	"github.com/oliverustc/gnarkabc/wrapper/plonkwrapper"
 	"github.com/stretchr/testify/require"
 )
 
+// 运行 go generate ./... 生成 mock 文件, 运行一次即可
 //go:generate counterfeiter -o mocks/transaction.go -fake-name TransactionContext . transactionContext
 type transactionContext interface {
 	contractapi.TransactionContextInterface
@@ -43,7 +46,7 @@ func TestGetContractInfo(t *testing.T) {
 	gnarkVerify := &GnarkVerifyContract{}
 	response, err := gnarkVerify.GetContractInfo(transactionContext)
 	require.NoError(t, err)
-	require.Equal(t, "Gnark Verification Contract - Supports verification of Groth16 proofs for circuit Y = X^3 + X + 5", response)
+	require.Equal(t, "Gnark Verification Contract", response)
 }
 
 type ZKSNARKParams struct {
@@ -52,7 +55,7 @@ type ZKSNARKParams struct {
 	WitnessPublic string `json:"witnessPublic"`
 }
 
-func groth16Generate(date string, t *testing.T) {
+func groth16Generate(date string, t *testing.T) error {
 	var circuit circuits.Product
 	circuit.PreCompile(nil)
 	curve := utils.CurveMap["BN254"]
@@ -67,13 +70,13 @@ func groth16Generate(date string, t *testing.T) {
 	zk.Prove()
 	zk.Verify()
 
-	t.Logf("Groth16 done")
+	logger.Debug("Groth16 done")
 	vkStr, _ := zk.MarshalVKToStr()
 	proofStr, _ := zk.MarshalProofToStr()
 	witnessPublicStr, _ := zk.MarshalWitnessToStr(true)
-	t.Logf("vk: %s", vkStr)
-	t.Logf("proof: %s", proofStr)
-	t.Logf("witnessPublic: %s", witnessPublicStr)
+	logger.Debug("vk: %s", vkStr)
+	logger.Debug("proof: %s", proofStr)
+	logger.Debug("witnessPublic: %s", witnessPublicStr)
 
 	params := ZKSNARKParams{
 		VK:            vkStr,
@@ -85,13 +88,14 @@ func groth16Generate(date string, t *testing.T) {
 	jsonFile, err := os.Create("output/groth16_" + date + ".json")
 	if err != nil {
 		t.Error("failed to create output/groth16_" + date + ".json")
-		return
+		return err
 	}
 	defer jsonFile.Close()
 	json.NewEncoder(jsonFile).Encode(params)
+	return nil
 }
 
-func groth16Verify(date string, t *testing.T) {
+func groth16Verify(date string, t *testing.T) error {
 	circuit := circuits.Product{}
 	curve := utils.CurveMap["BN254"]
 	zk := groth16wrapper.NewWrapper(&circuit, curve)
@@ -99,7 +103,7 @@ func groth16Verify(date string, t *testing.T) {
 	jsonFile, err := os.Open("output/groth16_" + date + ".json")
 	if err != nil {
 		t.Errorf("failed to open output/groth16_" + date + ".json")
-		return
+		return err
 	}
 	defer jsonFile.Close()
 	var params ZKSNARKParams
@@ -108,18 +112,25 @@ func groth16Verify(date string, t *testing.T) {
 	zk.UnmarshalProofFromStr(params.Proof)
 	zk.UnmarshalWitnessFromStr(params.WitnessPublic, true)
 	zk.Verify()
-	t.Logf("Groth16 verify done")
+	logger.Debug("Groth16 verify done")
+	return nil
 }
 
-func TestVerifyProof(t *testing.T) {
+func TestVerifyGroth16Proof(t *testing.T) {
 	chaincodeStub := &mocks.ChaincodeStub{}
 	transactionContext := &mocks.TransactionContext{}
 	transactionContext.GetStubReturns(chaincodeStub)
 
 	dateStr := time.Now().Format("2006-01-02_15-04-05")
 
-	groth16Generate(dateStr, t)
-	groth16Verify(dateStr, t)
+	err := groth16Generate(dateStr, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = groth16Verify(dateStr, t)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	groth16File, err := os.ReadFile("output/groth16_" + dateStr + ".json")
 	if err != nil {
@@ -129,9 +140,98 @@ func TestVerifyProof(t *testing.T) {
 	if err := json.Unmarshal(groth16File, &gnarkParams); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("Gnark params: %v", gnarkParams)
+	logger.Debug("Gnark params: %v", gnarkParams)
 	gnarkVerify := &GnarkVerifyContract{}
-	response, err := gnarkVerify.VerifyProof(transactionContext, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+	err = gnarkVerify.VerifyGroth16Proof(transactionContext, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
 	require.NoError(t, err)
-	require.Equal(t, true, response.Success)
+}
+
+func plonkGenerate(date string, t *testing.T) error {
+	var circuit circuits.Product
+	circuit.PreCompile(nil)
+	curve := utils.CurveMap["BN254"]
+	zk := plonkwrapper.NewWrapper(&circuit, curve)
+	zk.Compile()
+	zk.Setup()
+	p := utils.RandInt(1, 100)
+	q := utils.RandInt(1, 100)
+	assignParams := []any{p, q}
+	circuit.Assign(assignParams)
+	zk.SetAssignment(&circuit)
+	zk.Prove()
+	zk.Verify()
+
+	logger.Debug("Plonk done")
+	vkStr, _ := zk.MarshalVKToStr()
+	proofStr, _ := zk.MarshalProofToStr()
+	witnessPublicStr, _ := zk.MarshalWitnessToStr(true)
+	logger.Debug("vk: %s", vkStr)
+	logger.Debug("proof: %s", proofStr)
+	logger.Debug("witnessPublic: %s", witnessPublicStr)
+
+	params := ZKSNARKParams{
+		VK:            vkStr,
+		Proof:         proofStr,
+		WitnessPublic: witnessPublicStr,
+	}
+	// write params into json file
+	utils.EnsureDirExists("output")
+	jsonFile, err := os.Create("output/plonk_" + date + ".json")
+	if err != nil {
+		t.Error("failed to create output/plonk_" + date + ".json")
+		return err
+	}
+	defer jsonFile.Close()
+	json.NewEncoder(jsonFile).Encode(params)
+	return nil
+}
+
+func plonkVerify(date string, t *testing.T) error {
+	circuit := circuits.Product{}
+	curve := utils.CurveMap["BN254"]
+	zk := plonkwrapper.NewWrapper(&circuit, curve)
+	// read params from plonk.json
+	jsonFile, err := os.Open("output/plonk_" + date + ".json")
+	if err != nil {
+		t.Errorf("failed to open output/plonk_" + date + ".json")
+		return err
+	}
+	defer jsonFile.Close()
+	var params ZKSNARKParams
+	json.NewDecoder(jsonFile).Decode(&params)
+	zk.UnmarshalVKFromStr(params.VK)
+	zk.UnmarshalProofFromStr(params.Proof)
+	zk.UnmarshalWitnessFromStr(params.WitnessPublic, true)
+	zk.Verify()
+	logger.Debug("Plonk verify done")
+	return nil
+}
+
+func TestVerifyPlonkProof(t *testing.T) {
+	chaincodeStub := &mocks.ChaincodeStub{}
+	transactionContext := &mocks.TransactionContext{}
+	transactionContext.GetStubReturns(chaincodeStub)
+
+	gnarkVerify := &GnarkVerifyContract{}
+	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	err := plonkGenerate(dateStr, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = plonkVerify(dateStr, t)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	plonkFile, err := os.ReadFile("output/plonk_" + dateStr + ".json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var gnarkParams GnarkParams
+	if err := json.Unmarshal(plonkFile, &gnarkParams); err != nil {
+		t.Fatal(err)
+	}
+	logger.Debug("Gnark params: %v", gnarkParams)
+	err = gnarkVerify.VerifyPlonkProof(transactionContext, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+	require.NoError(t, err)
 }

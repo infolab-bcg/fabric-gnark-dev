@@ -99,8 +99,6 @@ github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.1.2/go.mod h1:FVVH3fgwuzCH5S8UJGiWEs2h04kUh9fWfEaFds41c1Y=
 github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e/go.mod h1:zD1mROLANZcx1PVRCS0qkT7pwLkGfwJo4zjcN/Tysno=
-github.com/oliverustc/gnarkabc v0.0.0-20250806031711-948c7189a2ab h1:oy5ci0MBIqLIyP+R2axPHFtXGdJFYj6L8oiHiG2C6AU=
-github.com/oliverustc/gnarkabc v0.0.0-20250806031711-948c7189a2ab/go.mod h1:ikjhZ95dwcKTli+qyIMwHDY2fE6y50O3FrrijbKG0hs=
 github.com/oliverustc/gnarkabc v0.0.0-20250806122357-929d396b4db1 h1:nNCis7jNpB2C3lTS6CG4zudQxM+oJigC9NGoNrVLpk8=
 github.com/oliverustc/gnarkabc v0.0.0-20250806122357-929d396b4db1/go.mod h1:Wx4sfzaU8HEe3fD6gaHSLMiUWtRZ35sYinNqhfEJvDg=
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
