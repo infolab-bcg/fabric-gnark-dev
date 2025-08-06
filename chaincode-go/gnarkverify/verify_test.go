@@ -18,6 +18,7 @@ import (
 )
 
 // 运行 go generate ./... 生成 mock 文件, 运行一次即可
+//
 //go:generate counterfeiter -o mocks/transaction.go -fake-name TransactionContext . transactionContext
 type transactionContext interface {
 	contractapi.TransactionContextInterface
@@ -55,10 +56,10 @@ type ZKSNARKParams struct {
 	WitnessPublic string `json:"witnessPublic"`
 }
 
-func groth16Generate(date string, t *testing.T) error {
+func groth16Generate(date string, curveName string) error {
 	var circuit circuits.Product
 	circuit.PreCompile(nil)
-	curve := utils.CurveMap["BN254"]
+	curve := utils.CurveMap[curveName]
 	zk := groth16wrapper.NewWrapper(&circuit, curve)
 	zk.Compile()
 	zk.Setup()
@@ -87,7 +88,6 @@ func groth16Generate(date string, t *testing.T) error {
 	utils.EnsureDirExists("output")
 	jsonFile, err := os.Create("output/groth16_" + date + ".json")
 	if err != nil {
-		t.Error("failed to create output/groth16_" + date + ".json")
 		return err
 	}
 	defer jsonFile.Close()
@@ -95,14 +95,13 @@ func groth16Generate(date string, t *testing.T) error {
 	return nil
 }
 
-func groth16Verify(date string, t *testing.T) error {
+func groth16Verify(date string, curveName string) error {
 	circuit := circuits.Product{}
-	curve := utils.CurveMap["BN254"]
+	curve := utils.CurveMap[curveName]
 	zk := groth16wrapper.NewWrapper(&circuit, curve)
 	// read params from groth16.json
 	jsonFile, err := os.Open("output/groth16_" + date + ".json")
 	if err != nil {
-		t.Errorf("failed to open output/groth16_" + date + ".json")
 		return err
 	}
 	defer jsonFile.Close()
@@ -123,33 +122,37 @@ func TestVerifyGroth16Proof(t *testing.T) {
 
 	dateStr := time.Now().Format("2006-01-02_15-04-05")
 
-	err := groth16Generate(dateStr, t)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = groth16Verify(dateStr, t)
-	if err != nil {
-		t.Fatal(err)
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("verifying groth16 proof on chaincode... curve: [%s]", curveName)
+		err := groth16Generate(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = groth16Verify(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		groth16File, err := os.ReadFile("output/groth16_" + dateStr + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var gnarkParams GnarkParams
+		if err := json.Unmarshal(groth16File, &gnarkParams); err != nil {
+			t.Fatal(err)
+		}
+		logger.Debug("Gnark params: %v", gnarkParams)
+		gnarkVerify := &GnarkVerifyContract{}
+		err = gnarkVerify.VerifyGroth16Proof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+		require.NoError(t, err)
+		t.Logf("verify groth16 proof on chaincode done, curve: [%s]", curveName)
 	}
 
-	groth16File, err := os.ReadFile("output/groth16_" + dateStr + ".json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var gnarkParams GnarkParams
-	if err := json.Unmarshal(groth16File, &gnarkParams); err != nil {
-		t.Fatal(err)
-	}
-	logger.Debug("Gnark params: %v", gnarkParams)
-	gnarkVerify := &GnarkVerifyContract{}
-	err = gnarkVerify.VerifyGroth16Proof(transactionContext, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
-	require.NoError(t, err)
 }
 
-func plonkGenerate(date string, t *testing.T) error {
+func plonkGenerate(date string, curveName string) error {
 	var circuit circuits.Product
 	circuit.PreCompile(nil)
-	curve := utils.CurveMap["BN254"]
+	curve := utils.CurveMap[curveName]
 	zk := plonkwrapper.NewWrapper(&circuit, curve)
 	zk.Compile()
 	zk.Setup()
@@ -178,7 +181,6 @@ func plonkGenerate(date string, t *testing.T) error {
 	utils.EnsureDirExists("output")
 	jsonFile, err := os.Create("output/plonk_" + date + ".json")
 	if err != nil {
-		t.Error("failed to create output/plonk_" + date + ".json")
 		return err
 	}
 	defer jsonFile.Close()
@@ -186,14 +188,13 @@ func plonkGenerate(date string, t *testing.T) error {
 	return nil
 }
 
-func plonkVerify(date string, t *testing.T) error {
+func plonkVerify(date string, curveName string) error {
 	circuit := circuits.Product{}
-	curve := utils.CurveMap["BN254"]
+	curve := utils.CurveMap[curveName]
 	zk := plonkwrapper.NewWrapper(&circuit, curve)
 	// read params from plonk.json
 	jsonFile, err := os.Open("output/plonk_" + date + ".json")
 	if err != nil {
-		t.Errorf("failed to open output/plonk_" + date + ".json")
 		return err
 	}
 	defer jsonFile.Close()
@@ -214,24 +215,28 @@ func TestVerifyPlonkProof(t *testing.T) {
 
 	gnarkVerify := &GnarkVerifyContract{}
 	dateStr := time.Now().Format("2006-01-02_15-04-05")
-	err := plonkGenerate(dateStr, t)
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = plonkVerify(dateStr, t)
-	if err != nil {
-		t.Fatal(err)
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("verifying plonk proof on chaincode... curve: [%s]", curveName)
+		err := plonkGenerate(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		err = plonkVerify(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		plonkFile, err := os.ReadFile("output/plonk_" + dateStr + ".json")
+		if err != nil {
+			t.Fatal(err)
+		}
+		var gnarkParams GnarkParams
+		if err := json.Unmarshal(plonkFile, &gnarkParams); err != nil {
+			t.Fatal(err)
+		}
+		logger.Debug("Gnark params: %v", gnarkParams)
+		err = gnarkVerify.VerifyPlonkProof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+		require.NoError(t, err)
+		t.Logf("verify plonk proof on chaincode done, curve: [%s]", curveName)
 	}
 
-	plonkFile, err := os.ReadFile("output/plonk_" + dateStr + ".json")
-	if err != nil {
-		t.Fatal(err)
-	}
-	var gnarkParams GnarkParams
-	if err := json.Unmarshal(plonkFile, &gnarkParams); err != nil {
-		t.Fatal(err)
-	}
-	logger.Debug("Gnark params: %v", gnarkParams)
-	err = gnarkVerify.VerifyPlonkProof(transactionContext, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
-	require.NoError(t, err)
 }
