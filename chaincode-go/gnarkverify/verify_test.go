@@ -86,7 +86,7 @@ func groth16Generate(date string, curveName string) error {
 	}
 	// write params into json file
 	utils.EnsureDirExists("output")
-	jsonFile, err := os.Create("output/groth16_" + date + ".json")
+	jsonFile, err := os.Create("output/groth16_" + curveName + "_" + date + ".json")
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func groth16Verify(date string, curveName string) error {
 	curve := utils.CurveMap[curveName]
 	zk := groth16wrapper.NewWrapper(&circuit, curve)
 	// read params from groth16.json
-	jsonFile, err := os.Open("output/groth16_" + date + ".json")
+	jsonFile, err := os.Open("output/groth16_" + curveName + "_" + date + ".json")
 	if err != nil {
 		return err
 	}
@@ -113,6 +113,26 @@ func groth16Verify(date string, curveName string) error {
 	zk.Verify()
 	logger.Debug("Groth16 verify done")
 	return nil
+}
+
+func TestGroth16(t *testing.T) {
+	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("generating groth16 proof... curve: [%s]", curveName)
+		err := groth16Generate(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("generate groth16 proof done, curve: [%s]", curveName)
+	}
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("verifying groth16 proof... curve: [%s]", curveName)
+		err := groth16Verify(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("verify groth16 proof done, curve: [%s]", curveName)
+	}
 }
 
 func TestVerifyGroth16Proof(t *testing.T) {
@@ -179,7 +199,7 @@ func plonkGenerate(date string, curveName string) error {
 	}
 	// write params into json file
 	utils.EnsureDirExists("output")
-	jsonFile, err := os.Create("output/plonk_" + date + ".json")
+	jsonFile, err := os.Create("output/plonk_" + curveName + "_" + date + ".json")
 	if err != nil {
 		return err
 	}
@@ -193,7 +213,7 @@ func plonkVerify(date string, curveName string) error {
 	curve := utils.CurveMap[curveName]
 	zk := plonkwrapper.NewWrapper(&circuit, curve)
 	// read params from plonk.json
-	jsonFile, err := os.Open("output/plonk_" + date + ".json")
+	jsonFile, err := os.Open("output/plonk_" + curveName + "_" + date + ".json")
 	if err != nil {
 		return err
 	}
@@ -206,6 +226,26 @@ func plonkVerify(date string, curveName string) error {
 	zk.Verify()
 	logger.Debug("Plonk verify done")
 	return nil
+}
+
+func TestPlonk(t *testing.T) {
+	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("generating plonk proof... curve: [%s]", curveName)
+		err := plonkGenerate(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("generate plonk proof done, curve: [%s]", curveName)
+	}
+	for _, curveName := range utils.CurveNameList {
+		t.Logf("verifying plonk proof... curve: [%s]", curveName)
+		err := plonkVerify(dateStr, curveName)
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("verify plonk proof done, curve: [%s]", curveName)
+	}
 }
 
 func TestVerifyPlonkProof(t *testing.T) {
