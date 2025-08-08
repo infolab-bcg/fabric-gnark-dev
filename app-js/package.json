@@ -1,0 +1,26 @@
+{
+    "name": "fabric-gnark-dev",
+    "version": "1.0.0",
+    "description": "Verify gnark proof on Fabric chaincode",
+    "engines": {
+        "node": ">=18"
+    },
+    "scripts": {
+        "lint": "eslint src",
+        "pretest": "npm run lint",
+        "start": "unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY && node src/app.js"
+    },
+    "engineStrict": true,
+    "author": "Hyperledger",
+    "license": "Apache-2.0",
+    "dependencies": {
+        "@grpc/grpc-js": "^1.12.2",
+        "@hyperledger/fabric-gateway": "^1.7.0",
+        "execa": "^9.6.0"
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.5.0",
+        "eslint": "^9.5.0",
+        "globals": "^15.6.0"
+    }
+}
