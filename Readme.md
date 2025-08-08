@@ -4,7 +4,7 @@
 
 1. clone this repo
 
-2. cd to gnarkverify 
+2. cd to gnarkverify
 
 ```bash
 cd fabric-gnark-dev/chaincode-go/gnarkverify
@@ -13,15 +13,16 @@ cd fabric-gnark-dev/chaincode-go/gnarkverify
 3. run unit test
 
 ```bash
-go test -v 
+go test -v
 ```
+
 ## 链上测试
 
-1. 运行fabric-samples test-network
+1. 运行 fabric-samples test-network
 
-参考[fabric快速开始](./doc/fabric_quickstart.md)，确保全部流程跑通。
+参考[fabric 快速开始](./doc/fabric_quickstart.md)，确保全部流程跑通。
 
-2. clone 本仓库到fabric-samples根目录
+2. clone 本仓库到 fabric-samples 根目录
 
 ```bash
 cd fabric-samples
@@ -36,6 +37,7 @@ git clone https://github.com/infolab-bcg/fabric-gnark-dev.git
 ```bash
 cd fabric-gnark-dev/verify-on-chain
 ```
+
 ```bash
 ./run.sh up
 ```
@@ -52,15 +54,38 @@ cd fabric-gnark-dev/verify-on-chain
 ./run.sh query
 ```
 
-6. 生成proof
+6. 生成 proof
 
 ```bash
 ./run.sh generate
 ```
 
-7. 调用链码验证proof
+7. 调用链码验证 proof
 
 ```bash
 ./run.sh verify
 ```
 
+## SDK 调用测试
+
+1. 启动网络并部署链码
+
+```bash
+cd verify-on-chain
+./run.sh up
+./run.sh deploy
+```
+
+2. 运行 sdk 代码
+
+```bash
+cd app-js
+```
+
+```bash
+npm install
+```
+
+```bash
+npm start
+```
