@@ -116,7 +116,9 @@ func groth16Verify(date string, curveName string) error {
 }
 
 func TestGroth16(t *testing.T) {
-	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	// 使用UTC+8时区(北京时间)
+	loc := time.FixedZone("CST", 8*3600) // 东八区，偏移量为8小时
+	dateStr := time.Now().In(loc).Format("2006-01-02_15-04-05")
 	for _, curveName := range utils.CurveNameList {
 		t.Logf("generating groth16 proof... curve: [%s]", curveName)
 		err := groth16Generate(dateStr, curveName)
@@ -139,8 +141,8 @@ func TestVerifyGroth16Proof(t *testing.T) {
 	chaincodeStub := &mocks.ChaincodeStub{}
 	transactionContext := &mocks.TransactionContext{}
 	transactionContext.GetStubReturns(chaincodeStub)
-
-	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	loc := time.FixedZone("CST", 8*3600) // 东八区，偏移量为8小时
+	dateStr := time.Now().In(loc).Format("2006-01-02_15-04-05")
 
 	for _, curveName := range utils.CurveNameList {
 		t.Logf("verifying groth16 proof on chaincode... curve: [%s]", curveName)
@@ -229,7 +231,8 @@ func plonkVerify(date string, curveName string) error {
 }
 
 func TestPlonk(t *testing.T) {
-	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	loc := time.FixedZone("CST", 8*3600) // 东八区，偏移量为8小时
+	dateStr := time.Now().In(loc).Format("2006-01-02_15-04-05")
 	for _, curveName := range utils.CurveNameList {
 		t.Logf("generating plonk proof... curve: [%s]", curveName)
 		err := plonkGenerate(dateStr, curveName)
@@ -254,7 +257,8 @@ func TestVerifyPlonkProof(t *testing.T) {
 	transactionContext.GetStubReturns(chaincodeStub)
 
 	gnarkVerify := &GnarkVerifyContract{}
-	dateStr := time.Now().Format("2006-01-02_15-04-05")
+	loc := time.FixedZone("CST", 8*3600) // 东八区，偏移量为8小时
+	dateStr := time.Now().In(loc).Format("2006-01-02_15-04-05")
 	for _, curveName := range utils.CurveNameList {
 		t.Logf("verifying plonk proof on chaincode... curve: [%s]", curveName)
 		err := plonkGenerate(dateStr, curveName)
