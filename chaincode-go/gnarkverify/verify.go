@@ -68,30 +68,30 @@ func readPublicWitness(pubWitnessStr string, curve ecc.ID) (witness.Witness, err
 	return publicWitness, nil
 }
 
-func (c *GnarkVerifyContract) VerifyGroth16Proof(ctx contractapi.TransactionContextInterface, curveName string, proofStr string, vkStr string, pubWitnessStr string) error {
+func (c *GnarkVerifyContract) VerifyGroth16Proof(ctx contractapi.TransactionContextInterface, curveName string, proofStr string, vkStr string, pubWitnessStr string) (string, error) {
 
 	curve := utils.CurveMap[curveName]
 	proof, err := readGroth16Proof(proofStr, curve)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	vk, err := readGroth16VK(vkStr, curve)
 	if err != nil {
-		return err
+		return "read groth16 verifyingkey failed", err
 	}
 
 	publicWitness, err := readPublicWitness(pubWitnessStr, curve)
 	if err != nil {
-		return err
+		return "read groth16 public witness failed", err
 	}
 
 	// 验证证明
 	if err := groth16.Verify(proof, vk, publicWitness); err != nil {
-		return fmt.Errorf("failed to verify proof: %v", err)
+		return "verify groth16 proof failed", fmt.Errorf("failed to verify proof: %v", err)
 	}
 
-	return nil
+	return "verify groth16 proof success", nil
 }
 
 func readPlonkVK(vkStr string, curve ecc.ID) (plonk.VerifyingKey, error) {
@@ -120,30 +120,30 @@ func readPlonkProof(proofStr string, curve ecc.ID) (plonk.Proof, error) {
 	return proof, nil
 }
 
-func (c *GnarkVerifyContract) VerifyPlonkProof(ctx contractapi.TransactionContextInterface, curveName string, proofStr string, vkStr string, pubWitnessStr string) error {
+func (c *GnarkVerifyContract) VerifyPlonkProof(ctx contractapi.TransactionContextInterface, curveName string, proofStr string, vkStr string, pubWitnessStr string) (string, error) {
 
 	curve := utils.CurveMap[curveName]
 	vk, err := readPlonkVK(vkStr, curve)
 	if err != nil {
-		return err
+		return "read plonk verifyingkey failed", err
 	}
 
 	proof, err := readPlonkProof(proofStr, curve)
 	if err != nil {
-		return err
+		return "read plonk proof failed", err
 	}
 
 	publicWitness, err := readPublicWitness(pubWitnessStr, curve)
 	if err != nil {
-		return err
+		return "read plonk public witness failed", err
 	}
 
 	// 验证证明
 	if err := plonk.Verify(proof, vk, publicWitness); err != nil {
-		return fmt.Errorf("failed to verify proof: %v", err)
+		return "verify plonk proof failed", fmt.Errorf("failed to verify proof: %v", err)
 	}
 
-	return nil
+	return "verify plonk proof success", nil
 }
 
 // GetContractInfo 获取合约信息

@@ -164,7 +164,7 @@ func TestVerifyGroth16Proof(t *testing.T) {
 		}
 		logger.Debug("Gnark params: %v", gnarkParams)
 		gnarkVerify := &GnarkVerifyContract{}
-		err = gnarkVerify.VerifyGroth16Proof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+		_, err = gnarkVerify.VerifyGroth16Proof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
 		require.NoError(t, err)
 		t.Logf("verify groth16 proof on chaincode done, curve: [%s]", curveName)
 	}
@@ -278,7 +278,7 @@ func TestVerifyPlonkProof(t *testing.T) {
 			t.Fatal(err)
 		}
 		logger.Debug("Gnark params: %v", gnarkParams)
-		err = gnarkVerify.VerifyPlonkProof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
+		_, err = gnarkVerify.VerifyPlonkProof(transactionContext, curveName, gnarkParams.Proof, gnarkParams.Vk, gnarkParams.WitnessPublic)
 		require.NoError(t, err)
 		t.Logf("verify plonk proof on chaincode done, curve: [%s]", curveName)
 	}
